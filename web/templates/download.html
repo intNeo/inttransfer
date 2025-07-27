@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" href="/static/favicon.ico" type="image/x-icon">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Download File</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+    <div class="container mx-auto p-4">
+        <div class="bg-white p-6 rounded-lg shadow-md text-center">
+            {% if error %}
+                <h1 class="text-2xl font-bold mb-4">Ошибка</h1>
+                <p>{{ error }}</p>
+                <a href="/" class="mt-4 inline-block bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">Назад к загрузке</a>
+            {% else %}
+                <h1 class="text-2xl font-bold mb-4">Скачать файл: {{ filename }}</h1>
+                {% if requires_password %}
+                    <div class="mb-4">
+                        <label for="passwordInput" class="block text-sm font-medium text-gray-700">Пароль:</label>
+                        <input type="password" id="passwordInput" class="mt-1 block w-full border rounded-md">
+                    </div>
+                {% endif %}
+                <button id="downloadButton" {% if requires_password %}disabled{% endif %} onclick="downloadFile()" class="w-full bg-blue-500 text-white p-2 rounded-md hover:bg-blue-600">Скачать</button>
+                {% if expires_at %}
+                    <p class="mt-4 text-sm text-gray-500">Файл будет доступен до {{ expires_at }}</p>
+                {% endif %}
+            {% endif %}
+        </div>
+
+        <!-- Модальное окно прогресса -->
+        <div id="progressModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
+            <div class="modal-content bg-white p-6 rounded-lg shadow-md w-96">
+                <h2 class="text-xl font-bold mb-4">Скачивание...</h2>
+                <div class="mb-4">
+                    <label class="block text-sm font-medium text-gray-700">Обработка...</label>
+                    <progress id="progressBar" value="0" max="100" class="w-full"></progress>
+                    <p id="progressText" class="text-sm mt-1">0%</p>
+                    <p id="speedText" class="text-sm mt-1">0 KB/s</p>
+                </div>
+                <button onclick="closeModal('progressModal')" class="mt-4 w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600">Закрыть</button>
+            </div>
+        </div>
+
+        <!-- Модальное окно ошибки -->
+        <div id="errorModal" class="modal fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center hidden">
+            <div class="modal-content bg-white p-6 rounded-lg shadow-md w-96">
+                <h2 class="text-xl font-bold mb-4">Error</h2>
+                <p id="errorText"></p>
+                <button onclick="closeModal('errorModal')" class="mt-4 w-full bg-gray-500 text-white p-2 rounded-md hover:bg-gray-600">Закрыть</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/main.js"></script>
+    <script>
+        function closeModal(modalId) {
+            document.getElementById(modalId).style.display = 'none';
+        }
+
+        function showError(message) {
+            const errorModal = document.getElementById('errorModal');
+            document.getElementById('errorText').textContent = message;
+            errorModal.style.display = 'block';
+        }
+
+        function downloadFile() {
+            const password = document.getElementById('passwordInput')?.value || '';
+            const fileId = window.location.pathname.split('/').pop();
+            console.log(`Sending password for fileId ${fileId}: ${password}`); // Отладка
+            
+            const progressModal = document.getElementById('progressModal');
+            progressModal.style.display = 'block';
+
+            // Симуляция комбинированного процесса
+            let startTime = Date.now();
+            const interval = setInterval(() => {
+                const timeElapsed = (Date.now() - startTime) / 1000;
+                const totalTime = 3; // Общее время симуляции (3 секунды)
+                const percent = Math.min((timeElapsed / totalTime) * 100, 100);
+                document.getElementById('progressBar').value = percent;
+                document.getElementById('progressText').textContent = `${Math.round(percent)}%`;
+
+                const speed = (percent / 100) * 1024 * 1024 / (timeElapsed || 1); // Симуляция скорости
+                const speedText = speed > 1024 * 1024 
+                    ? `${(speed / (1024 * 1024)).toFixed(2)} MB/s`
+                    : `${(speed / 1024).toFixed(2)} KB/s`;
+                document.getElementById('speedText').textContent = speedText;
+
+                if (percent >= 100) {
+                    clearInterval(interval);
+                    const formData = new FormData();
+                    formData.append('password', password);
+                    fetch(`/download/${fileId}/file`, {
+                        method: 'POST',
+                        body: formData
+                    }).then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => {
+                                console.log(`Server error response: ${JSON.stringify(err)}`); // Отладка
+                                throw new Error(err.error || 'Unknown error');
+                            });
+                        }
+                        return response.blob();
+                    }).then(blob => {
+                        const url = window.URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = '{{ filename }}';
+                        document.body.appendChild(a);
+                        a.click();
+                        a.remove();
+                        window.URL.revokeObjectURL(url);
+                        closeModal('progressModal');
+                    }).catch(error => {
+                        showError(error.message);
+                        closeModal('progressModal');
+                    });
+                }
+            }, 100);
+        }
+
+        // Check if password input exists and add event listener
+        const passwordInput = document.getElementById('passwordInput');
+        if (passwordInput) {
+            passwordInput.addEventListener('input', function() {
+                document.getElementById('downloadButton').disabled = !this.value;
+            });
+        }
+    </script>
+</body>
+</html>
