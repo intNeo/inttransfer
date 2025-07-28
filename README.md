@@ -24,8 +24,9 @@ git clone https://github.com/intNeo/inttransfer.git
 ### 2. Переходим в скачанный репозиторий и создаем виртуальную среду
 
 ```bash
-cd inttransfer-main
-python3 -m venv .env
+cd inttransfer
+python3.12 -m venv .env
+source .env/bin/activate
 ```
 
 ### 3. Устанавливаем зависимости
@@ -37,7 +38,7 @@ pip install -r config/requirements.txt
 ### 4. Запускаем код для генерации закрытого ключа
 
 ```bash
-python3 config/genkey.py
+python3.12 config/genkey.py
 ```
 > В результате получите ключ: `LS0tLS1CRUdJTiBQUklWQVRFIEtFWS0tLS0tCk1JSUNkUUlCQ...`
 
@@ -52,16 +53,18 @@ nano config/.env
 
 ```bash
 cd ..
-chown -R www-data:www-data inttransfer-main/
+chown -R www-data:www-data inttransfer/
+chmod -R 755 inttransfer/
 ```
 
 ### 7. Скопировать демон systemd в директорию `/etc/systemd/system` и запустить
 
 ```bash
-cd inttransfer-main
+cd inttransfer
 cp config/inttransfer.service /etc/systemd/system
 systemctl daemon-reload
 systemctl enable inttransfer --now
+systemctl status inttransfer
 ```
 
 ### 8. Настроить и скопировать nginx конфиг в `/etc/nginx/site-available`
@@ -72,7 +75,7 @@ nano config/inttransfer.conf
 > Заполнить необходимую информацию ip/domain, пути к сертификату/ключу`
 
 ```bash
-ln -s config/inttransfer.conf /etc/nginx/sites-enabled/
+ln -s /var/www/inttransfer/config/inttransfer.conf /etc/nginx/sites-enabled/
 nginx -t
 systemctl restart nginx
 ```
@@ -116,3 +119,26 @@ MAX_CONTENT_LENGTH;
 ```bash
 systemctl restart inttransfer nginx
 ```
+
+### Если используете Python3.13+:
+
+#### 1. Изменить версию в конфиге демона
+
+```bash
+nano config/inttransfer.service
+```
+
+#### 2. Перезаписать демон в директории `/etc/systemd/system/`
+
+```bash
+cp config/inttransfer.service /etc/systemd/system
+systemctl daemon-reload
+systemctl restart inttransfer
+systemctl status inttransfer
+```
+
+### Возможные ошибки с правами доступа и установкой зависимостей:
+
+> Все действия делались от пользователя `root` и потом передавались права на пользователя `www-data`
+
+> Если у вас версия выше Python3.12, то меняйте цифру например `python3.13 -m venv .env` и т.д.

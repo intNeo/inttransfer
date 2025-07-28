@@ -3,13 +3,14 @@ Description=intTransfer - secured file sharing
 After=network.target
 
 [Service]
-ExecStart=/var/www/inttransfer-main/.env/bin/python3 /var/www/inttransfer-main/server/app.py
-WorkingDirectory=/var/www/inttransfer-main/
+# Если используете Python выше 3.12 поменяйте значение, например 3.13 и т.п.
+ExecStart=/var/www/inttransfer/.env/bin/python3.12 /var/www/inttransfer/server/app.py
+WorkingDirectory=/var/www/inttransfer/
 Restart=always
 User=www-data
 Group=www-data
 Environment="PYTHONUNBUFFERED=1"
-Environment="PATH=/var/www/inttransfer-main/.env/bin:/usr/bin:/usr/local/bin"
+Environment="PATH=/var/www/inttransfer/.env/bin:/usr/bin:/usr/local/bin"
 MemoryMax=512M
 Restart=on-failure
 RestartSec=5
