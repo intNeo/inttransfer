@@ -1,0 +1,19 @@
+[Unit]
+Description=intTransfer - secured file sharing
+After=network.target
+
+[Service]
+ExecStart=/var/www/inttransfer-main/.env/bin/python3 /var/www/inttransfer-main/server/app.py
+WorkingDirectory=/var/www/inttransfer-main/
+Restart=always
+User=www-data
+Group=www-data
+Environment="PYTHONUNBUFFERED=1"
+Environment="PATH=/var/www/inttransfer-main/.env/bin:/usr/bin:/usr/local/bin"
+MemoryMax=512M
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=6
+
+[Install]
+WantedBy=multi-user.target
