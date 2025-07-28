@@ -59,6 +59,8 @@ chmod -R 755 inttransfer/
 
 ### 7. Скопировать демон systemd в директорию `/etc/systemd/system` и запустить
 
+> По дефолту в демоне используется 3.12 версия, если у вас отличается, сначало поменяйте, а потом копируйте
+
 ```bash
 cd inttransfer
 cp config/inttransfer.service /etc/systemd/system
