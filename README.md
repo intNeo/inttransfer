@@ -1,4 +1,4 @@
-# intTransfer форк старого проекта ([NodeJS](https://github.com/intNeo/FileTransfer)), переписанный на Python
+# intTransfer форк старого проекта ([FileTransfer](https://github.com/intNeo/FileTransfer)), переписанный на Python
 
 ## Особенности
 - Передача и скачивание файлов
