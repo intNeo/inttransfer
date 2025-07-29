@@ -5,6 +5,33 @@
 - Возможность указать пароль `(необязательно)`
 - Возможность указать срок хранения файла `от 10 минут до недели`
 
+## Скриншоты
+
+<p align="center">
+  <img src="media/page-upload.jpeg" alt="Главная страница" width="600"/>
+</p>
+<p align="center"><em>Главная страница</em></p>
+
+<p align="center">
+  <img src="media/page-preupload.jpeg" alt="Настройки перед загрузкой" width="600"/>
+</p>
+<p align="center"><em>Настройки перед загрузкой</em></p>
+
+<p align="center">
+  <img src="media/page-doneupload.jpeg" alt="Результат загрузки" width="600"/>
+</p>
+<p align="center"><em>Результат загрузки</em></p>
+
+<p align="center">
+  <img src="media/page-download.jpeg" alt="Страница скачивания" width="600"/>
+</p>
+<p align="center"><em>Страница скачивания</em></p>
+
+<p align="center">
+  <img src="media/page-donedownload.jpeg" alt="Процесс скачивания" width="600"/>
+</p>
+<p align="center"><em>Процесс скачивания</em></p>
+
 ## Необходимая версия Python:
 - 3.12 и выше
 
