@@ -94,7 +94,7 @@ function uploadFile() {
 
 function downloadFile(fileId) {
     const password = document.getElementById('downloadPassword') ? document.getElementById('downloadPassword').value : '';
-    const downloadModal = document.getElementById('downloadModal');
+    const downloadModal = document.getElementById('progressModal');
     downloadModal.style.display = 'flex';
 
     // Симуляция комбинированного процесса
@@ -151,12 +151,18 @@ function startDownload(fileId, password) {
             document.body.appendChild(a);
             a.click();
             window.URL.revokeObjectURL(url);
-            closeModal('downloadModal');
+            closeModal('progressModal');
         } else {
             const error = JSON.parse(xhr.responseText).error;
             showError(error);
-            closeModal('downloadModal');
+            closeModal('progressModal');
         }
     };
+
+    xhr.onerror = () => {
+        showError('Ошибка сети при скачивании');
+        closeModal('progressModal');
+    };
+
     xhr.send(JSON.stringify({ password: password }));
 }

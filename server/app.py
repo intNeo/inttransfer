@@ -8,6 +8,7 @@ from dotenv import load_dotenv
 import logging
 from datetime import datetime, timedelta, UTC
 import re
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -212,39 +213,49 @@ def download_file(file_id):
     file_size = os.path.getsize(file_path)
     logger.info(f"Зашифрованный файл {file_path} имеет размер {file_size} байт")
     
-    decrypted_path = os.path.join(app.config['TEMP_FOLDER'], f"{file_id}.dec")
     try:
-        logger.info(f"Расшифровка файла {file_path} в {decrypted_path}")
-        decrypt_file(file_path, decrypted_path)
-        if not os.path.exists(decrypted_path):
-            logger.error(f"Расшифрованный файл не создан: {decrypted_path}")
-            return jsonify({'error': 'Не удалось создать расшифрованный файл'}), 500
-        decrypted_size = os.path.getsize(decrypted_path)
-        logger.info(f"Расшифрованный файл {decrypted_path} создан с размером {decrypted_size} байт")
-        
-        # Проверка размера
-        if decrypted_size != metadata['original_size']:
-            logger.error(f"Неверный размер расшифрованного файла: {decrypted_size} вместо {metadata['original_size']}")
-            return jsonify({'error': 'Расшифрованный файл повреждён'}), 500
-        
-        # Проверка хэша
-        sha256_hash = hashlib.sha256()
-        with open(decrypted_path, 'rb') as f:
-            while chunk := f.read(8192):
-                sha256_hash.update(chunk)
-        decrypted_hash = sha256_hash.hexdigest()
-        if decrypted_hash != metadata['file_hash']:
-            logger.error(f"Неверный хэш расшифрованного файла: {decrypted_hash} вместо {metadata['file_hash']}")
-            return jsonify({'error': 'Расшифрованный файл повреждён (хэш не совпадает)'}), 500
-        
-        return send_file(decrypted_path, download_name=metadata['original_name'], as_attachment=True)
+        # Создаём уникальный временный файл с помощью tempfile
+        with tempfile.NamedTemporaryFile(dir=app.config['TEMP_FOLDER'], delete=False) as temp_decrypted_file:
+            decrypted_path = temp_decrypted_file.name
+            logger.info(f"Расшифровка файла {file_path} в уникальный временный файл {decrypted_path}")
+            decrypt_file(file_path, decrypted_path)
+            
+            if not os.path.exists(decrypted_path):
+                logger.error(f"Расшифрованный файл не создан: {decrypted_path}")
+                return jsonify({'error': 'Не удалось создать расшифрованный файл'}), 500
+            
+            decrypted_size = os.path.getsize(decrypted_path)
+            logger.info(f"Расшифрованный файл {decrypted_path} создан с размером {decrypted_size} байт")
+            
+            # Проверка размера
+            if decrypted_size != metadata['original_size']:
+                logger.error(f"Неверный размер расшифрованного файла: {decrypted_size} вместо {metadata['original_size']}")
+                return jsonify({'error': 'Расшифрованный файл повреждён'}), 500
+            
+            # Проверка хэша
+            sha256_hash = hashlib.sha256()
+            with open(decrypted_path, 'rb') as f:
+                while chunk := f.read(8192):
+                    sha256_hash.update(chunk)
+            decrypted_hash = sha256_hash.hexdigest()
+            if decrypted_hash != metadata['file_hash']:
+                logger.error(f"Неверный хэш расшифрованного файла: {decrypted_hash} вместо {metadata['file_hash']}")
+                return jsonify({'error': 'Расшифрованный файл повреждён (хэш не совпадает)'}), 500
+            
+            # Отправляем файл (send_file автоматически обрабатывает потоковую передачу)
+            response = send_file(decrypted_path, download_name=metadata['original_name'], as_attachment=True)
+            return response
     except Exception as e:
         logger.error(f"Ошибка скачивания для {file_id}: {e}")
         return jsonify({'error': f"Ошибка скачивания: {str(e)}"}), 500
     finally:
-        if os.path.exists(decrypted_path):
+        # Удаляем файл вручную (на случай, если delete=False)
+        if 'decrypted_path' in locals() and os.path.exists(decrypted_path):
             logger.info(f"Очистка расшифрованного файла: {decrypted_path}")
-            os.remove(decrypted_path)
+            try:
+                os.remove(decrypted_path)
+            except Exception as remove_e:
+                logger.error(f"Не удалось удалить временный файл {decrypted_path}: {remove_e}")
 
 if __name__ == '__main__':
     app.run(debug=False)
